@@ -9,12 +9,12 @@ if os.environ.get('Database') != None:
 else:
   connectionString = "postgresql://david:blink182@localhost:5432/cars"
 
-engine = create_engine(connectionString, echo=True)
+engine = create_engine(connectionString, echo=False)
 
 from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text
 
 class Car(Base):
   __tablename__ = 'cars'
@@ -104,6 +104,12 @@ class Operations:
     car = session.query(Car).filter_by(Id=car_id).first()
     car.Sold = datetime.now()
     session.commit()
+
+  def SaveCars(cars):
+    session.bulk_save_objects(cars)
+    session.commit()
+    for car in cars:
+      print(car.Id)
 
   def SaveCar(car):
     exists = session.query(Car.Id).filter_by(Id=car.Id).scalar() != None

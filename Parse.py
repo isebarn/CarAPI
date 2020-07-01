@@ -70,7 +70,11 @@ def parseDate(date):
   return datetime(year, month, day, hour, minute)
 
 def getUser(soup):
-  return soup.find("a", class_="sendPrivateMessage nobbq messageUser")["data-user"]
+  user = soup.find("a", class_="sendPrivateMessage nobbq messageUser")
+  if user is not None:
+    return user["data-user"]
+  else:
+    return ""
 
 def getClassifiedId(url):
   parsed = urlparse.urlparse(url)
@@ -85,22 +89,22 @@ def getPrice(soup):
     return 0
 
   result = re.search(r'\d+', result).group()
-
-  return result
+  return int(result)
 
 def getDescription(soup):
-  result = soup.find("p", itemprop="description")
+  result = soup.find("p", itemprop="description").text
+  #cleaner = re.compile(r'<.*?>')
+  #result = re.sub(cleaner, '', result)
   return result
 
-def getCar(url):
-  url = base_url + url
+def getCar(url, queue = None):
+  url = base_url + "/classified/entry.aspx?classifiedId=" + str(url)
 
   page = fetchPage(url)
   soup = BeautifulSoup(page, features="lxml")
 
   data = {key: getElement(soup, key) for key in props}
 
-  print(url)
   expiration = getElement(soup, "Rennur út", "p")
   date = parseDate(expiration)
   data["Created"] = date - timedelta(days=60)
@@ -113,14 +117,16 @@ def getCar(url):
 
   data["Description"] = getDescription(soup)
 
-  return data
+  if queue is not None:
+    queue.put(data)
+  else:
+    return data
 
 def check(queue, url):
   page = fetchPage(url)
   soup = BeautifulSoup(page, features="lxml")
 
   if (soup.find("span", class_="product_headline")) == None:
-    print(url)
     car_id = getClassifiedId(url)
     Operations.MarkCarSold(car_id)
 
@@ -162,21 +168,43 @@ class Parser:
 
   def parseAll():
     a = getAllAdsInPageRange(0,40)
-
-    newlist = [int(getClassifiedId(x)) for x in a]
+    a = [int(getClassifiedId(x)) for x in a]
+    a = set(a)
     b = Operations.GetAllIds()
-    notsaved = [x for x in newlist if x not in b]
 
-    a = [x for x in a if int(getClassifiedId(x)) in notsaved]
+    urls = [x for x in a if x not in b]
 
-    for x in a:
-      car = getCar(x)
-      Operations.SaveCar(Car(car))
+    split = len(urls)//10
+    split_urls = [urls[i::split] for i in range(split)]
 
-    return len(a)
+    queue = Queue()
+    cars = []
+
+    for i, url_sect in enumerate(split_urls):
+      threads = []
+      print("Thread section {}/{}".format(i,split))
+
+      for url in url_sect:
+        x = threading.Thread(target=getCar, args=(url, queue))
+        x.start()
+        threads.append(x)
+
+      for thread in threads:
+        thread.join()
+        car = queue.get()
+        cars.append(Car(car))
+
+    print("Saving")
+    Operations.SaveCars(cars)
+    print("Saved")
+
+    return len(cars)
 
 
 if __name__ == "__main__":
+  Parser.parseAll()
+  '''
   a = getCar("/classified/entry.aspx?classifiedId=4203603")
   for k,v in a.items():
     print("{}: {}".format(k,v))
+  '''
