@@ -4,12 +4,21 @@ from flask import jsonify
 
 from ORM import Operations
 from Parse import Parser
+from flask_cors import CORS, cross_origin
 
 app = Flask(__name__)
+app.config['CORS_HEADERS'] = 'Content-Type'
+
+cors = CORS(app, resources={r"*": {"origins": "http://localhost:3000"}})
 
 @app.route('/')
 def GetMakerModelYearCount():
     result = Operations.GetMakerModelYearCount()
+    return jsonify(result)
+
+@app.route('/<maker>/<type>/<year>')
+def GetMakerModelYearByParameters(maker, type, year):
+    result = Operations.GetMakerModelYearByParameters(maker, type, year)
     return jsonify(result)
 
 @app.route('/makers')

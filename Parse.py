@@ -8,6 +8,7 @@ from urllib.parse import parse_qs
 from ORM import Car, Operations
 import threading
 from multiprocessing import Queue
+import re
 
 base_url = "https://bland.is"
 list_url = base_url + "/solutorg/farartaeki/nyir-notadir-bilar-til-solu/?categoryId=17&sub=1&page={}"
@@ -75,6 +76,22 @@ def getClassifiedId(url):
   parsed = urlparse.urlparse(url)
   return parse_qs(parsed.query)['classifiedId'][0]
 
+def getPrice(soup):
+  result = soup.find("h5", itemprop="price").text
+  result = result.replace('.', '')
+  result = result.replace(' ', '')
+
+  if 'Tilboð' in result:
+    return 0
+
+  result = re.search(r'\d+', result).group()
+
+  return result
+
+def getDescription(soup):
+  result = soup.find("p", itemprop="description")
+  return result
+
 def getCar(url):
   url = base_url + url
 
@@ -91,6 +108,10 @@ def getCar(url):
   data["User"] = getUser(soup)
 
   data["Id"] = getClassifiedId(url)
+
+  data["Price"] = getPrice(soup)
+
+  data["Description"] = getDescription(soup)
 
   return data
 
@@ -154,4 +175,8 @@ class Parser:
 
     return len(a)
 
-#Parser.checkSold()
+
+if __name__ == "__main__":
+  a = getCar("/classified/entry.aspx?classifiedId=4203603")
+  for k,v in a.items():
+    print("{}: {}".format(k,v))

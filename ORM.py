@@ -23,6 +23,8 @@ class Car(Base):
   Maker = Column(String)
   Model = Column(String)
   Type = Column(String)
+  Price = Column(Integer)
+  Description = Column(String)
   Year = Column(Integer)
   Driven = Column(Integer)
   Fuel = Column(String)
@@ -52,6 +54,8 @@ class Car(Base):
       self.Maker = data["Framleiðandi"]
       self.Model = data["Undirtegund"]
       self.Type = data["Tegund"]
+      self.Price = data["Price"]
+      self.Description = data["Description"]
       self.Year = self.TryGetInteger(data["Ár"])
       self.Driven = self.TryGetInteger(data["Akstur"].replace(".", ""))
       self.Fuel = data["Eldsneyti"]
@@ -66,6 +70,32 @@ class Car(Base):
       self.Color = data["Litur"]
       self.Created = data["Created"]
       self.User = data["User"]
+
+  def Readable(self):
+    obj = {}
+    obj["Id"] = self.Id
+    obj["Maker"] = self.Maker
+    obj["Model"] = self.Model
+    obj["Type"] = self.Type
+    obj["Price"] = self.Price
+    obj["Description"] = self.Description
+    obj["Year"] = self.Year
+    obj["Driven"] = self.Driven
+    obj["Fuel"] = self.Fuel
+    obj["Transmission"] = self.Transmission
+    obj["Drive"] = self.Drive
+    obj["ExchangeUp"] = self.ExchangeUp
+    obj["ExchangeDown"] = self.ExchangeDown
+    obj["Seats"] = self.Seats
+    obj["Doors"] = self.Doors
+    obj["Valves"] = self.Valves
+    obj["Inspected"] = self.Inspected
+    obj["Color"] = self.Color
+    obj["Created"] = self.Created
+    obj["Sold"] = self.Sold
+    obj["User"] = self.User
+
+    return obj
 
 
 class Operations:
@@ -120,12 +150,12 @@ class Operations:
   def GetAllIds():
     return [x[0] for x in session.query(Car.Id).all()]
 
-  def GetMakerModelYearCount():
-    data = session.query(Car.Maker, Car.Model, Car.Year, func.count()
-      ).group_by(Car.Maker, Car.Model, Car.Year
-      ).all()
 
-    dicts = [dict(zip(["Maker", "Model", "Year", "Count"], d)) for d in data]
+  def GetMakerModelYearByParameters(maker, model, year):
+    return [x.Readable() for x in session.query(Car).filter_by(Maker=maker, Model=model, Year=year).all()]
+
+  def GetMakerModelYearGroupedCount():
+    dicts = GetMakerModelYearCount()
 
     result = {}
 
@@ -145,6 +175,14 @@ class Operations:
 
     return result
 
+  def GetMakerModelYearCount():
+    data = session.query(Car.Maker, Car.Model, Car.Year, func.count()
+      ).group_by(Car.Maker, Car.Model, Car.Year
+      ).all()
+
+    return [dict(zip(["Maker", "Model", "Year", "Count"], d)) for d in data]
+
+
   def GetMakers():
     makers = session.query(Car.Maker, func.count()).group_by(Car.Maker).all()
     makers_dict = {maker[0]: maker[1] for maker in makers}
@@ -162,12 +200,5 @@ Session = sessionmaker()
 Session.configure(bind=engine)
 session = Session()
 
-# print(Operations.GetMakerModelYearCount())
-
-# ed_user = User(name='ed', fullname='Ed Jones', nickname='edsnickname')
-# session.add(ed_user)
-#
-# session.commit()
-#
-# for instance in session.query(User).order_by(User.id):
-  # print(instance.name, instance.fullname)
+if __name__ == "__main__":
+  print(123)
