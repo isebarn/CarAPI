@@ -6,8 +6,6 @@ import os
 
 if os.environ.get('Database') != None:
   connectionString = os.environ.get('Database')
-else:
-  connectionString = "postgresql://david:blink182@localhost:5432/cars"
 
 engine = create_engine(connectionString, echo=False)
 
