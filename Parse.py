@@ -161,7 +161,7 @@ class Parser:
 
 
   def parseAll():
-    a = getAllAdsInPageRange(0,10)
+    a = getAllAdsInPageRange(0,40)
 
     newlist = [int(getClassifiedId(x)) for x in a]
     b = Operations.GetAllIds()
