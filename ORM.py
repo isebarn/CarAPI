@@ -1,5 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy import func
+from datetime import datetime
 
 import os
 
@@ -69,12 +70,52 @@ class Car(Base):
 
 class Operations:
 
+  def MarkCarSold(car_id):
+    car = session.query(Car).filter_by(Id=car_id).first()
+    car.Sold = datetime.now()
+    session.commit()
+
   def SaveCar(car):
     exists = session.query(Car.Id).filter_by(Id=car.Id).scalar() != None
 
     if not exists:
       session.add(car)
       session.commit()
+
+  def GetUnsoldIDs():
+    data = session.query(Car.Id).filter_by(Sold=None).all()
+    return [x[0] for x in data]
+
+  def GetAllSold():
+    data = session.query(Car).filter(Car.Sold.isnot(None)).all()
+    result = []
+
+    for item in data:
+      obj = {}
+      obj["Id"] = item.Id
+      obj["Maker"] = item.Maker
+      obj["Model"] = item.Model
+      obj["Type"] = item.Type
+      obj["Year"] = item.Year
+      obj["Driven"] = item.Driven
+      obj["Fuel"] = item.Fuel
+      obj["Transmission"] = item.Transmission
+      obj["Drive"] = item.Drive
+      obj["ExchangeUp"] = item.ExchangeUp
+      obj["ExchangeDown"] = item.ExchangeDown
+      obj["Seats"] = item.Seats
+      obj["Doors"] = item.Doors
+      obj["Valves"] = item.Valves
+      obj["Inspected"] = item.Inspected
+      obj["Color"] = item.Color
+      obj["Created"] = item.Created
+      obj["Sold"] = item.Sold
+      obj["User"] = item.User
+
+      result.append(obj)
+
+
+    return result
 
   def GetAllIds():
     return [x[0] for x in session.query(Car.Id).all()]
@@ -120,12 +161,13 @@ from sqlalchemy.orm import sessionmaker
 Session = sessionmaker()
 Session.configure(bind=engine)
 session = Session()
+
 # print(Operations.GetMakerModelYearCount())
 
 # ed_user = User(name='ed', fullname='Ed Jones', nickname='edsnickname')
 # session.add(ed_user)
-# 
+#
 # session.commit()
-# 
+#
 # for instance in session.query(User).order_by(User.id):
   # print(instance.name, instance.fullname)

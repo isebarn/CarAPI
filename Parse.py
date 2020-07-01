@@ -1,10 +1,13 @@
 from bs4 import BeautifulSoup
 import urllib3
+import time
 import sys
 from datetime import datetime, timedelta
 import urllib.parse as urlparse
 from urllib.parse import parse_qs
 from ORM import Car, Operations
+import threading
+from multiprocessing import Queue
 
 base_url = "https://bland.is"
 list_url = base_url + "/solutorg/farartaeki/nyir-notadir-bilar-til-solu/?categoryId=17&sub=1&page={}"
@@ -91,10 +94,53 @@ def getCar(url):
 
   return data
 
+def check(queue, url):
+  page = fetchPage(url)
+  soup = BeautifulSoup(page, features="lxml")
+
+  if (soup.find("span", class_="product_headline")) == None:
+    print(url)
+    car_id = getClassifiedId(url)
+    Operations.MarkCarSold(car_id)
+
+    queue.put(True)
+
+  queue.put(False)
+
+
 class Parser:
 
+
+  def checkSold():
+    ids = Operations.GetUnsoldIDs()
+
+    base_ad_url = base_url + "/classified/entry.aspx?classifiedId="
+
+    urls = [base_ad_url + str(x) for x in ids]
+    split = len(urls)//20
+    split_urls = [urls[i::split] for i in range(split)]
+    queue = Queue()
+    sold = 0
+
+    for i, url_sect in enumerate(split_urls):
+      threads = []
+      print("Thread section {}/{}".format(i,split))
+
+      for url in url_sect:
+        x = threading.Thread(target=check, args=(queue, url))
+        x.start()
+        threads.append(x)
+
+      for thread in threads:
+        thread.join()
+        sold += 1 if queue.get() else 0
+
+    return sold
+
+
+
   def parseAll():
-    a = getAllAdsInPageRange(0,40)
+    a = getAllAdsInPageRange(0,10)
 
     newlist = [int(getClassifiedId(x)) for x in a]
     b = Operations.GetAllIds()
@@ -107,3 +153,5 @@ class Parser:
       Operations.SaveCar(Car(car))
 
     return len(a)
+
+#Parser.checkSold()
