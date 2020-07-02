@@ -242,6 +242,7 @@ class Parser:
     print(len(cars))
 
     # mark sold
+    unsold_saved_ads = Operations.GetUnsoldIDs()
     saved_ads_ids_minus_live = [x for x in unsold_saved_ads if x not in live_ads]
 
     sold = []
