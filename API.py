@@ -54,3 +54,10 @@ def GetUnsoldIDs():
     result = Operations.GetUnsoldIDs()
 
     return jsonify(result)
+
+@app.route('/GetLogs')
+def GetLogs():
+    result = Operations.GetLogs()
+
+    return jsonify(result)
+

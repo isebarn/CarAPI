@@ -1,8 +1,10 @@
 from sqlalchemy import create_engine
 from sqlalchemy import func
 from datetime import datetime
+from sqlalchemy import desc
 
 import os
+import json
 
 if os.environ.get('Database') != None:
   connectionString = os.environ.get('Database')
@@ -13,6 +15,26 @@ from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
 
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text
+
+class Updates(Base):
+  __tablename__ = 'updates'
+
+  Id = Column(Integer, primary_key=True)
+  Data = Column(Text)
+  Time = Column(DateTime)
+
+  def __init__(self, data):
+    self.Data = json.dumps(data)
+    self.Time = datetime.now()
+
+  def Readable(self):
+    result = {}
+    result["Id"] = self.Id
+    result["Data"] = json.loads(self.Data)
+    result["Time"] = self.Time
+
+    return result
+
 
 class Car(Base):
   __tablename__ = 'cars'
@@ -195,6 +217,16 @@ class Operations:
   def GetModels():
     return session.query(Car.Model, func.count()).group_by(Car.Model).all()
 
+  def LogUpdate(data):
+    update = Updates(data)
+    session.add(update)
+    session.commit()
+
+  def GetLogs():
+    updates = session.query(Updates).order_by(desc(Updates.Time)).limit(10).all()
+    return [x.Readable() for x in updates]
+    #Updates.query.order_by(desc(Updates.Time)).limit(10).all()
+
 Base.metadata.create_all(engine)
 
 
@@ -205,4 +237,4 @@ Session.configure(bind=engine)
 session = Session()
 
 if __name__ == "__main__":
-  print(123)
+  print(Operations.GetLogs())

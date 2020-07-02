@@ -124,15 +124,14 @@ def getCar(url, queue = None):
   else:
     return data
 
-def check(url):
-  page = fetchPage(url)
+def check(car_id):
+  page = fetchPage(base_url + "/classified/entry.aspx?classifiedId=" + str(car_id))
   soup = BeautifulSoup(page, features="lxml")
 
   if (soup.find("span", class_="product_headline")) == None:
-    car_id = getClassifiedId(url)
     Operations.MarkCarSold(car_id)
 
-    return url
+    return car_id
 
   return None
 
@@ -244,12 +243,16 @@ class Parser:
 
     # mark sold
     saved_ads_ids_minus_live = [x for x in unsold_saved_ads if x not in live_ads]
-    
+
     sold = []
     for ad in saved_ads_ids_minus_live:
-      sold.append(check(base_url + "/classified/entry.aspx?classifiedId=" + str(ad)))
+      sold.append(check(ad))
 
-    return { "new": unsaved_ads, "sold": sold }
+    result = { "new": unsaved_ads, "sold": sold }
+
+    Operations.LogUpdate(result)
+
+    return result
 
 
   def parseAll():
@@ -289,7 +292,7 @@ class Parser:
 
 
 if __name__ == "__main__":
-  Parser.test()
+  Parser.Update()
   '''
   a = getCar("/classified/entry.aspx?classifiedId=4203603")
   for k,v in a.items():
