@@ -226,7 +226,7 @@ class Parser:
 
     for i, url_sect in enumerate(unsaved_ads_chunks):
       threads = []
-      print("Thread section {}/{}".format(i,len(unsaved_ads_chunks)))
+      print("Thread section {}/{}".format(i,len(unsaved_ads_chunks)), file=sys.stdout)
 
       for url in url_sect:
         x = threading.Thread(target=getCar, args=(url, queue))
