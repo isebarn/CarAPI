@@ -127,7 +127,7 @@ class Operations:
 
   def SaveCars(cars):
     all_ids = session.query(Car.Id).all()
-    session.bulk_save_objects([x in cars if x not in all_ids])
+    session.bulk_save_objects([x for x in cars if x not in all_ids])
     session.commit()
     for car in cars:
       print(car.Id)
