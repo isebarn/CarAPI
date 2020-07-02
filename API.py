@@ -40,7 +40,7 @@ def Update():
 
 @app.route('/CheckForSold')
 def CheckForSold():
-    result = Parser.checkSold()
+    result = Parser.checkSoldThreaded()
     return jsonify({'sold': result})
 
 @app.route('/GetAllSold')

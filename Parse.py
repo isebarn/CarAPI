@@ -25,6 +25,10 @@ def fetchPage(page):
   return r.data
 
 
+def getAllAdsFromPageThread(page_number, queue):
+  result = getAllAdsFromPage(page_number)
+  queue.put(result)
+
 def getAllAdsFromPage(page_number):
   page = fetchPage(list_url.format(page_number))
   soup = BeautifulSoup(page, features="lxml")
@@ -93,8 +97,6 @@ def getPrice(soup):
 
 def getDescription(soup):
   result = soup.find("p", itemprop="description").text
-  #cleaner = re.compile(r'<.*?>')
-  #result = re.sub(cleaner, '', result)
   return result
 
 def getCar(url, queue = None):
@@ -122,7 +124,7 @@ def getCar(url, queue = None):
   else:
     return data
 
-def check(queue, url):
+def check(url):
   page = fetchPage(url)
   soup = BeautifulSoup(page, features="lxml")
 
@@ -130,10 +132,12 @@ def check(queue, url):
     car_id = getClassifiedId(url)
     Operations.MarkCarSold(car_id)
 
-    queue.put(True)
+    return url
 
-  queue.put(False)
+  return None
 
+def checkThread(queue, url):
+  queue.put(check(url))
 
 class Parser:
 
@@ -147,7 +151,7 @@ class Parser:
     split = len(urls)//20
     split_urls = [urls[i::split] for i in range(split)]
     queue = Queue()
-    sold = 0
+    sold = []
 
     for i, url_sect in enumerate(split_urls):
       threads = []
@@ -160,10 +164,36 @@ class Parser:
 
       for thread in threads:
         thread.join()
-        sold += 1 if queue.get() else 0
+        sold.append(queue.get())
 
     return sold
 
+  def checkSoldThreaded ():
+    ads = []
+    threads = []
+    queue = Queue()
+    for idx in range(0,40):
+      x = threading.Thread(target=getAllAdsFromPageThread, args=(idx, queue))
+      x.start()
+      threads.append(x)
+
+    for thread in threads:
+      thread.join()
+      print(1)
+      page_data = queue.get()
+      ads.append(page_data)
+
+    live_ads = [int(getClassifiedId(item)) for sublist in ads for item in sublist]
+    live_ads = set(live_ads)
+
+    unsold_saved_ads_ids = Operations.GetUnsoldIDs()
+    saved_ads_ids_minus_live = [x for x in unsold_saved_ads_ids if x not in live_ads]
+
+    sold = []
+    for ad in saved_ads_ids_minus_live:
+      sold.append(check(base_url + "/classified/entry.aspx?classifiedId=" + str(ad)))
+
+    return [x for x in sold if x is not None]
 
 
   def parseAll():
@@ -202,7 +232,6 @@ class Parser:
 
 
 if __name__ == "__main__":
-  Parser.parseAll()
   '''
   a = getCar("/classified/entry.aspx?classifiedId=4203603")
   for k,v in a.items():
