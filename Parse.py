@@ -215,7 +215,7 @@ class Parser:
     live_ads = set(live_ads)
 
     # Fetch all from db that have not been mark sold
-    unsold_saved_ads = Operations.GetUnsoldIDs()
+    unsold_saved_ads = Operations.GetAllIds()
 
     # save new
     unsaved_ads = [x for x in live_ads if x not in unsold_saved_ads]
