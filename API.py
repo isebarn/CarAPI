@@ -34,9 +34,9 @@ def GetModels():
 
 @app.route('/update')
 def Update():
-    result = Parser.parseAll()
+    result = Parser.Update()
 
-    return jsonify({'new': str(result)})
+    return jsonify(result)
 
 @app.route('/CheckForSold')
 def CheckForSold():

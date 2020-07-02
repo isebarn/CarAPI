@@ -179,7 +179,6 @@ class Parser:
 
     for thread in threads:
       thread.join()
-      print(1)
       page_data = queue.get()
       ads.append(page_data)
 
@@ -194,6 +193,63 @@ class Parser:
       sold.append(check(base_url + "/classified/entry.aspx?classifiedId=" + str(ad)))
 
     return [x for x in sold if x is not None]
+
+  def Update():
+    ads = []
+    threads = []
+    queue = Queue()
+
+    # Start threads where each thread reads a single list page
+    for idx in range(0,40):
+      x = threading.Thread(target=getAllAdsFromPageThread, args=(idx, queue))
+      x.start()
+      threads.append(x)
+
+    # Wait for threads to finish
+    for thread in threads:
+      thread.join()
+      page_data = queue.get()
+      ads.append(page_data)
+
+    # parse the ID's from the ad urls and get a unique list
+    live_ads = [int(getClassifiedId(item)) for sublist in ads for item in sublist]
+    live_ads = set(live_ads)
+
+    # Fetch all from db that have not been mark sold
+    unsold_saved_ads = Operations.GetUnsoldIDs()
+
+    # save new
+    unsaved_ads = [x for x in live_ads if x not in unsold_saved_ads]
+    split = 10
+    unsaved_ads_chunks = [unsaved_ads[x:x+split] for x in range(0, len(unsaved_ads), split)]
+    queue = Queue()
+    cars = []
+
+    for i, url_sect in enumerate(unsaved_ads_chunks):
+      threads = []
+      print("Thread section {}/{}".format(i,len(unsaved_ads_chunks)))
+
+      for url in url_sect:
+        x = threading.Thread(target=getCar, args=(url, queue))
+        x.start()
+        threads.append(x)
+
+      for thread in threads:
+        thread.join()
+        car = queue.get()
+        cars.append(Car(car))
+
+    Operations.SaveCars(cars)
+    print(len(cars))
+
+    # mark sold
+    saved_ads_ids_minus_live = [x for x in unsold_saved_ads if x not in live_ads]
+    
+    sold = []
+    for ad in saved_ads_ids_minus_live:
+      sold.append(check(base_url + "/classified/entry.aspx?classifiedId=" + str(ad)))
+
+    return { "new": unsaved_ads, "sold": sold }
 
 
   def parseAll():
@@ -225,13 +281,15 @@ class Parser:
         cars.append(Car(car))
 
     print("Saving")
-    Operations.SaveCars(cars)
+    print(cars)
+    # Operations.SaveCars(cars)
     print("Saved")
 
     return len(cars)
 
 
 if __name__ == "__main__":
+  Parser.test()
   '''
   a = getCar("/classified/entry.aspx?classifiedId=4203603")
   for k,v in a.items():
