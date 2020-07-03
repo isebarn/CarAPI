@@ -131,9 +131,9 @@ def check(car_id):
   if (soup.find("span", class_="product_headline")) == None:
     Operations.MarkCarSold(car_id)
 
-    return car_id
+    return True
 
-  return None
+  return False
 
 def checkThread(queue, url):
   queue.put(check(url))
@@ -247,7 +247,8 @@ class Parser:
 
     sold = []
     for ad in saved_ads_ids_minus_live:
-      sold.append(check(ad))
+      if check(ad):
+        sold.append(ad)
 
     result = { "new": unsaved_ads, "sold": sold }
 
