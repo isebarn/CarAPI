@@ -9,6 +9,7 @@ import json
 if os.environ.get('Database') != None:
   connectionString = os.environ.get('Database')
 
+connectionString = 'postgresql://david:blink182@localhost:5432/cars'
 engine = create_engine(connectionString, echo=False)
 
 from sqlalchemy.ext.declarative import declarative_base
@@ -35,6 +36,18 @@ class Updates(Base):
 
     return result
 
+class Errors(Base):
+  __tablename__ = 'errors'
+
+  Id = Column(Integer, primary_key=True)
+  Text = Column(Text)
+  Time = Column(DateTime)
+  URL = Column(Integer)
+
+  def __init__(self, data):
+    self.Text = data["Text"]
+    self.Time = data["Time"]
+    self.URL = data["URL"]
 
 class Car(Base):
   __tablename__ = 'cars'
@@ -119,6 +132,10 @@ class Car(Base):
 
 
 class Operations:
+
+  def LogError(error_data):
+    session.add(Errors(error_data))
+    session.commit()
 
   def MarkCarSold(car_id):
     car = session.query(Car).filter_by(Id=car_id).first()

@@ -92,13 +92,36 @@ def getPrice(soup):
   if 'Tilboð' in result:
     return 0
 
-  result = re.search(r'\d+', result).group()
 
-  return int(result)
+  result = re.search(r'\d+', result)
+
+  if result == None:
+    return 0
+
+  result = result.group()
+  result = int(result)
+
+  if result > 2**31:
+    result = 0
+
+  return result
 
 def getDescription(soup):
   result = soup.find("p", itemprop="description").text
   return result
+
+def tryGetCar(url, queue = None):
+  try:
+    return getCar(url, queue)
+
+  except Exception as e:
+    print(url)
+    error = {}
+    error["Text"] = str(e)
+    error["Time"] = datetime.now()
+    error["URL"] = url
+
+    Operations.LogError(error)
 
 def getCar(url, queue = None):
   url = base_url + "/classified/entry.aspx?classifiedId=" + str(url)
@@ -230,7 +253,7 @@ class Parser:
       print("Thread section {}/{}".format(i,len(unsaved_ads_chunks)), file=sys.stdout)
 
       for url in url_sect:
-        x = threading.Thread(target=getCar, args=(url, queue))
+        x = threading.Thread(target=tryGetCar, args=(url, queue))
         x.start()
         threads.append(x)
 
