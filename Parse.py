@@ -92,8 +92,12 @@ def getPrice(soup):
   if 'Tilboð' in result:
     return 0
 
-  result = re.search(r'\d+', result).group()
-  return int(result)
+  result = re.search(r'\d+', result)
+
+  if result == None:
+    return 0
+
+  return int(result.group())
 
 def getDescription(soup):
   result = soup.find("p", itemprop="description").text
