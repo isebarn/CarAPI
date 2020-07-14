@@ -196,36 +196,44 @@ class Operations:
 
 
   def GetMakerModelYearByParameters(maker, model, year):
-    return [x.Readable() for x in session.query(Car).filter_by(Maker=maker, Model=model, Year=year).all()]
+    data = session.query(func.max(Car.Id)
+      ).filter_by(Maker=maker, Model=model, Year=year
+      ).filter(Car.Price > 2000
+      ).group_by(
+        Car.Maker,
+        Car.Model,
+        Car.Year,
+        Car.Fuel,
+        Car.Transmission,
+        Car.Color,
+        Car.User
+      ).all()
 
-  def GetMakerModelYearGroupedCount():
-    dicts = GetMakerModelYearCount()
+    ids = [x[0] for x in data]
 
-    result = {}
-
-    for item in dicts:
-
-      if item["Maker"] not in result:
-        result[item["Maker"]] = {}
-
-      maker = result[item["Maker"]]
-
-      if item["Model"] not in maker:
-        maker[item["Model"]] = {}
-
-      model = maker[item["Model"]]
-
-      model[item["Year"]] = item["Count"]
-
-    return result
+    return [x.Readable() for x in session.query(Car).filter(Car.Id.in_(ids)).all()]
 
   def GetMakerModelYearCount():
+    data = session.query(func.max(Car.Id)
+      ).filter(Car.Price > 2000
+      ).group_by(
+        Car.Maker,
+        Car.Model,
+        Car.Year,
+        Car.Fuel,
+        Car.Transmission,
+        Car.Color,
+        Car.User
+      ).all()
+
+    ids = [x[0] for x in data]
+
     data = session.query(Car.Maker, Car.Model, Car.Year, func.count()
+      ).filter(Car.Id.in_(ids)
       ).group_by(Car.Maker, Car.Model, Car.Year
       ).all()
 
     return [dict(zip(["Maker", "Model", "Year", "Count"], d)) for d in data]
-
 
   def GetMakers():
     makers = session.query(Car.Maker, func.count()).group_by(Car.Maker).all()
@@ -243,7 +251,6 @@ class Operations:
   def GetLogs():
     updates = session.query(Updates).order_by(desc(Updates.Time)).limit(10).all()
     return [x.Readable() for x in updates]
-    #Updates.query.order_by(desc(Updates.Time)).limit(10).all()
 
 Base.metadata.create_all(engine)
 
@@ -255,4 +262,5 @@ Session.configure(bind=engine)
 session = Session()
 
 if __name__ == "__main__":
-  print(Operations.GetLogs())
+  for x in (Operations.GetMakerModelYearCount()):
+    print(x)
