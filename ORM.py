@@ -9,7 +9,7 @@ import json
 if os.environ.get('Database') != None:
   connectionString = os.environ.get('Database')
 
-#connectionString = 'postgresql://david:blink182@localhost:5432/cars'
+connectionString = 'postgresql://david:blink182@localhost:5432/cars'
 engine = create_engine(connectionString, echo=False)
 
 from sqlalchemy.ext.declarative import declarative_base
@@ -146,8 +146,6 @@ class Operations:
     all_ids = session.query(Car.Id).all()
     session.bulk_save_objects([x for x in cars if x not in all_ids])
     session.commit()
-    for car in cars:
-      print(car.Id)
 
   def SaveCar(car):
     exists = session.query(Car.Id).filter_by(Id=car.Id).scalar() != None

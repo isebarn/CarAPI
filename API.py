@@ -22,36 +22,9 @@ def GetMakerModelYearByParameters(maker, type, year):
     result = Operations.GetMakerModelYearByParameters(maker, type, year)
     return jsonify(result)
 
-@app.route('/makers')
-def GetMakers():
-    result = Operations.GetMakers()
-    return jsonify(result)
-
-@app.route('/models')
-def GetModels():
-    result = Operations.GetModels()
-    return jsonify(result)
-
 @app.route('/update')
 def Update():
     result = Parser.Update()
-
-    return jsonify(result)
-
-@app.route('/CheckForSold')
-def CheckForSold():
-    result = Parser.checkSoldThreaded()
-    return jsonify({'sold': result})
-
-@app.route('/GetAllSold')
-def GetAllSold():
-    result = Operations.GetAllSold()
-
-    return jsonify(result)
-
-@app.route('/GetUnsoldIDs')
-def GetUnsoldIDs():
-    result = Operations.GetUnsoldIDs()
 
     return jsonify(result)
 

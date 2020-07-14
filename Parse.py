@@ -10,8 +10,8 @@ import threading
 from multiprocessing import Queue
 import re
 
-base_url = "https://bland.is"
-list_url = base_url + "/solutorg/farartaeki/nyir-notadir-bilar-til-solu/?categoryId=17&sub=1&page={}"
+ad_base_url = "https://bland.is/classified/entry.aspx?classifiedId={}"
+list_url = "https://bland.is/solutorg/farartaeki/nyir-notadir-bilar-til-solu/?categoryId=17&sub=1&page={}"
 props = ["Framleiðandi", "Undirtegund", "Tegund", "Ár", "Akstur", "Eldsneyti", "Skipting", "Hjóladrifin", "Skipti", "Fjöldi sæta", "Fjöldi dyra", "Fjöldi strokka", "Skoðaður", "Litur"]
 months = ["", "janúar", "febrúar", "mars", "apríl", "maí", "júní", "júlí", "ágúst", "september", "október", "nóvember", "desember"]
 
@@ -35,10 +35,6 @@ def getAllAdsFromPage(page_number):
   car_list = soup.find_all("div", class_= page_list_class.format(page_number))
 
   return [x[ad_url_key] for x in car_list]
-
-def getAllAdsInPageRange(first, last):
-  idx = [getAllAdsFromPage(page) for page in range(first, last)]
-  return [item for sublist in idx for item in sublist]
 
 def getElement(soup, tag_string, tag_type="td"):
   result = ""
@@ -124,7 +120,7 @@ def tryGetCar(url, queue = None):
     Operations.LogError(error)
 
 def getCar(url, queue = None):
-  url = base_url + "/classified/entry.aspx?classifiedId=" + str(url)
+  url = ad_base_url.format(str(url))
 
   page = fetchPage(url)
   soup = BeautifulSoup(page, features="lxml")
@@ -149,7 +145,7 @@ def getCar(url, queue = None):
     return data
 
 def check(car_id):
-  page = fetchPage(base_url + "/classified/entry.aspx?classifiedId=" + str(car_id))
+  page = fetchPage(ad_base_url.format(str(car_id)))
   soup = BeautifulSoup(page, features="lxml")
 
   if (soup.find("span", class_="product_headline")) == None:
@@ -159,63 +155,7 @@ def check(car_id):
 
   return False
 
-def checkThread(queue, url):
-  queue.put(check(url))
-
 class Parser:
-
-
-  def checkSold():
-    ids = Operations.GetUnsoldIDs()
-
-    base_ad_url = base_url + "/classified/entry.aspx?classifiedId="
-
-    urls = [base_ad_url + str(x) for x in ids]
-    split = len(urls)//20
-    split_urls = [urls[i::split] for i in range(split)]
-    queue = Queue()
-    sold = []
-
-    for i, url_sect in enumerate(split_urls):
-      threads = []
-      print("Thread section {}/{}".format(i,split))
-
-      for url in url_sect:
-        x = threading.Thread(target=check, args=(queue, url))
-        x.start()
-        threads.append(x)
-
-      for thread in threads:
-        thread.join()
-        sold.append(queue.get())
-
-    return sold
-
-  def checkSoldThreaded ():
-    ads = []
-    threads = []
-    queue = Queue()
-    for idx in range(0,40):
-      x = threading.Thread(target=getAllAdsFromPageThread, args=(idx, queue))
-      x.start()
-      threads.append(x)
-
-    for thread in threads:
-      thread.join()
-      page_data = queue.get()
-      ads.append(page_data)
-
-    live_ads = [int(getClassifiedId(item)) for sublist in ads for item in sublist]
-    live_ads = set(live_ads)
-
-    unsold_saved_ads_ids = Operations.GetUnsoldIDs()
-    saved_ads_ids_minus_live = [x for x in unsold_saved_ads_ids if x not in live_ads]
-
-    sold = []
-    for ad in saved_ads_ids_minus_live:
-      sold.append(check(base_url + "/classified/entry.aspx?classifiedId=" + str(ad)))
-
-    return [x for x in sold if x is not None]
 
   def Update():
     ads = []
@@ -263,7 +203,6 @@ class Parser:
         cars.append(Car(car))
 
     Operations.SaveCars(cars)
-    print(len(cars))
 
     # mark sold
     unsold_saved_ads = Operations.GetUnsoldIDs()
@@ -280,47 +219,5 @@ class Parser:
 
     return result
 
-
-  def parseAll():
-    a = getAllAdsInPageRange(0,40)
-    a = [int(getClassifiedId(x)) for x in a]
-    a = set(a)
-    b = Operations.GetAllIds()
-
-    urls = [x for x in a if x not in b]
-
-    split = len(urls)//10
-    split_urls = [urls[i::split] for i in range(split)]
-
-    queue = Queue()
-    cars = []
-
-    for i, url_sect in enumerate(split_urls):
-      threads = []
-      print("Thread section {}/{}".format(i,split))
-
-      for url in url_sect:
-        x = threading.Thread(target=getCar, args=(url, queue))
-        x.start()
-        threads.append(x)
-
-      for thread in threads:
-        thread.join()
-        car = queue.get()
-        cars.append(Car(car))
-
-    print("Saving")
-    print(cars)
-    # Operations.SaveCars(cars)
-    print("Saved")
-
-    return len(cars)
-
-
 if __name__ == "__main__":
   Parser.Update()
-  '''
-  a = getCar("/classified/entry.aspx?classifiedId=4203603")
-  for k,v in a.items():
-    print("{}: {}".format(k,v))
-  '''
