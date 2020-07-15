@@ -9,7 +9,6 @@ import json
 if os.environ.get('Database') != None:
   connectionString = os.environ.get('Database')
 
-#connectionString = 'postgresql://david:blink182@localhost:5432/cars'
 engine = create_engine(connectionString, echo=False)
 
 from sqlalchemy.ext.declarative import declarative_base
@@ -260,5 +259,4 @@ Session.configure(bind=engine)
 session = Session()
 
 if __name__ == "__main__":
-  for x in (Operations.GetMakerModelYearCount()):
-    print(x)
+  print(os.environ.get('Database'))
